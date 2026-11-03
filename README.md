@@ -1,3 +1,4 @@
+ HEAD
 # LearnMate AI — Smart Learning Platform
 
 A Django 5 + Bootstrap 5 education platform with an AI tutor, textbook image reader, voice questions,
@@ -194,3 +195,6 @@ Teal is used only for progress and success.
 - Short-answer grading is exact match after lowercasing and removing punctuation, so spelling variants count as wrong.
 - Tamil answers depend on the connected model's Tamil ability; the UI font supports Tamil.
 - Teacher self-signup is off by default (`TEACHER_SELF_SIGNUP=False`); admins assign the teacher role.
+
+# LearnMateAi
+88acbd55a6460268e1f1ad23f521d75d76db6fa4

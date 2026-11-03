@@ -1,0 +1,10 @@
+{% extends "myapp/auth/shell.html" %}
+{% block title %}Create account{% endblock %}
+{% block auth_body %}
+<h1>Create your account</h1><p class="text-muted">It takes a minute. AI features stay off until you turn them on.</p>
+<form method="post" novalidate>{% csrf_token %}
+  {% include "myapp/partials/form_fields.html" with form=form %}
+  <button class="btn btn-primary w-100">Create account</button>
+</form>
+<p class="small mt-3">Already registered? <a href="{% url 'login' %}">Log in</a></p>
+{% endblock %}

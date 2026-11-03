@@ -1,0 +1,41 @@
+{% extends "myapp/base.html" %}
+{% block title %}Visual generator{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Visual generator</h1><p>Describe a picture for your lesson. Labels are added separately so the spelling stays exact.</p></div></div>
+{% if not profile.can_use_ai %}<div class="alert alert-warning">AI features are off for your account. <a href="{% url 'profile' %}">Open privacy settings</a>.</div>{% endif %}
+<div class="row g-3">
+  <div class="col-lg-5"><section class="panel"><div class="panel-body">
+    <label class="form-label" for="prompt">What should the picture show?</label>
+    <textarea id="prompt" class="form-control mb-2" rows="3" maxlength="500" placeholder="The water cycle: sun, sea, clouds and rain over hills"></textarea>
+    <div class="quick mb-3"><button type="button" class="btn btn-quiet btn-sm ex">Water cycle</button><button type="button" class="btn btn-quiet btn-sm ex">Solar system</button><button type="button" class="btn btn-quiet btn-sm ex">Photosynthesis in a leaf</button></div>
+    <label class="form-label" for="labels">Labels (optional, separated by commas)</label>
+    <input id="labels" class="form-control mb-3" maxlength="300" placeholder="Evaporation, Condensation, Precipitation">
+    <button class="btn btn-primary" id="gen">Generate picture</button>
+    <div id="err" class="alert alert-danger mt-3 d-none"></div>
+    <p class="small text-muted mt-3 mb-0">Pictures are AI-generated and may not be scientifically exact. Prompts that ask for unsafe content are blocked.</p>
+  </div></section></div>
+  <div class="col-lg-7"><section class="panel"><div class="panel-head"><h2>Result</h2></div><div class="panel-body" id="result"><div class="empty"><i class="bi bi-brush"></i><p>Your picture appears here.</p></div></div></section></div>
+</div>
+<section class="panel mt-3"><div class="panel-head"><h2>Your pictures</h2></div><div class="panel-body"><div class="row g-3">
+  {% for v in items %}<div class="col-6 col-md-3">{% if v.image %}<a href="{% url 'private_media' 'visual' v.pk %}" target="_blank"><img class="img-fluid rounded" src="{% url 'private_media' 'visual' v.pk %}" alt="{{ v.prompt }}"></a>{% else %}<div class="empty p-2"><span class="chip bad">{{ v.get_status_display }}</span></div>{% endif %}
+    <div class="small text-muted text-truncate mt-1" title="{{ v.prompt }}">{{ v.prompt }}</div>
+    <form method="post" action="{% url 'visual_delete' v.pk %}" data-confirm="Delete this picture?">{% csrf_token %}<button class="btn btn-quiet btn-sm p-0">Delete</button></form></div>
+  {% empty %}<div class="col-12"><div class="empty"><p>Nothing generated yet.</p></div></div>{% endfor %}</div></div></section>
+{% endblock %}
+{% block scripts %}<script>
+const $ = (i) => document.getElementById(i);
+const prompts = ["Explain the water cycle with a labeled educational illustration", "A visual representation of the solar system", "A diagram concept for photosynthesis in a leaf"];
+const labelSets = ["Evaporation, Condensation, Precipitation, Collection", "Sun, Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune", "Sunlight, Carbon dioxide, Water, Oxygen, Glucose"];
+document.querySelectorAll(".ex").forEach((b, i) => b.onclick = () => { $("prompt").value = prompts[i]; $("labels").value = labelSets[i]; });
+$("gen").onclick = async () => {
+  $("err").classList.add("d-none"); $("gen").disabled = true; $("gen").textContent = "Generating…";
+  $("result").innerHTML = '<div class="empty"><div class="spinner-border text-primary" role="status"></div><p>This can take up to a minute.</p></div>';
+  const r = await LM.post("/api/visuals/generate/", { prompt: $("prompt").value, labels: $("labels").value });
+  $("gen").disabled = false; $("gen").textContent = "Generate picture";
+  if (!r.ok) { $("result").innerHTML = '<div class="empty"><i class="bi bi-brush"></i><p>Your picture appears here.</p></div>'; $("err").textContent = r.error || "Could not generate the picture."; $("err").classList.remove("d-none"); return; }
+  const wrap = document.createElement("div"); const im = document.createElement("img"); im.src = r.url; im.className = "img-fluid rounded"; im.alt = $("prompt").value; wrap.appendChild(im);
+  if (r.labels.length) { const l = document.createElement("div"); l.className = "legend-list mt-3"; r.labels.forEach(t => { const c = document.createElement("span"); c.className = "chip brand"; c.textContent = t; l.appendChild(c); }); wrap.appendChild(l); }
+  const a = document.createElement("a"); a.href = r.url; a.download = "learnmate-visual.png"; a.className = "btn btn-outline-primary btn-sm mt-3"; a.textContent = "Download"; wrap.appendChild(a);
+  $("result").replaceChildren(wrap);
+};
+</script>{% endblock %}

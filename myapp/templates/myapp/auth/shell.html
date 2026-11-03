@@ -1,0 +1,11 @@
+{% extends "myapp/base.html" %}
+{% block bare %}
+<div class="auth-wrap">
+  <section class="auth-side">
+    <a class="brand text-white" href="/"><span class="brand-mark" style="background:#fff;color:#4338CA"><i class="bi bi-mortarboard-fill"></i></span>LearnMate AI</a>
+    <div><h1>Ask in Tamil or English. Learn at your pace.</h1><p>Explanations, quizzes and study plans built around what you are learning this week.</p></div>
+    <p class="small mb-0">AI answers can contain mistakes. Your teacher and textbook stay the source of truth.</p>
+  </section>
+  <section class="auth-form"><div>{% block auth_body %}{% endblock %}</div></section>
+</div>
+{% endblock %}

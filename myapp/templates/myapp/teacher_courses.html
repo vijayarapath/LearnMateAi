@@ -1,0 +1,8 @@
+{% extends "myapp/base.html" %}
+{% block title %}Classes{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Classes</h1><p>Create a class, then share its join code with students.</p></div></div>
+<div class="row g-3"><div class="col-lg-7"><section class="panel"><div class="rows">{% for c in courses %}<a class="row-link" href="{% url 'teacher_course' c.pk %}"><span>{{ c.title }}<span class="d-block small text-muted">{{ c.subject.name }} · join code <strong>{{ c.join_code }}</strong></span></span><span class="chip">{{ c.n }} student{{ c.n|pluralize }}</span></a>
+  {% empty %}<div class="empty"><p>No classes yet. Use the form to create your first one.</p></div>{% endfor %}</div></section></div>
+  <div class="col-lg-5"><form method="post" class="panel"><div class="panel-head"><h2>New class</h2></div><div class="panel-body">{% csrf_token %}{% include "myapp/partials/form_fields.html" with form=form %}<button class="btn btn-primary">Create class</button></div></form></div></div>
+{% endblock %}

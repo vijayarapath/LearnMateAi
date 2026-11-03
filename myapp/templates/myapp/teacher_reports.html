@@ -1,0 +1,14 @@
+{% extends "myapp/base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Class reports</h1><p>Quiz performance, topics students find hard, and study-plan progress.</p></div>
+  <form method="get" class="d-flex gap-2"><select name="course" class="form-select" aria-label="Class" onchange="this.form.submit()">{% for c in courses %}<option value="{{ c.pk }}" {% if course and course.pk == c.pk %}selected{% endif %}>{{ c.title }}</option>{% endfor %}</select></form></div>
+{% if not report %}<div class="panel">{% include "myapp/partials/empty.html" with icon="bi-bar-chart" text="Create a class and publish a quiz to see reports." href="/teacher/classes/" cta="Go to classes" %}</div>
+{% else %}
+<div class="row g-3 mb-3"><div class="col-lg-7"><section class="panel"><div class="panel-head"><h2>Accuracy by topic</h2></div><div class="panel-body" style="height:280px">{% if report.topic_chart.labels %}<canvas id="topics" role="img" aria-label="Accuracy by topic"></canvas>{% else %}<div class="empty"><p>No quiz answers yet.</p></div>{% endif %}</div></section></div>
+  <div class="col-lg-5"><section class="panel"><div class="panel-head"><h2>Commonly misunderstood</h2></div><div class="rows">{% for t in report.weak_topics|slice:":5" %}<div class="d-flex justify-content-between"><span>{{ t.topic }}</span><span class="chip {% if t.percent < 50 %}bad{% else %}warn{% endif %} tnum">{{ t.percent }}%</span></div>{% empty %}<div class="empty"><p>Nothing to show yet.</p></div>{% endfor %}</div></section></div></div>
+<section class="panel"><div class="panel-head"><h2>Students</h2></div><table class="table mb-0"><thead><tr><th>Student</th><th class="text-end">Quiz average</th><th class="text-end">Attempts</th><th class="text-end">Plan progress</th><th class="text-end">Streak</th></tr></thead><tbody>
+  {% for r in report.students %}<tr><td><a href="{% url 'student_report' course.pk r.student.pk %}">{{ r.student.profile.display_name }}</a></td><td class="text-end tnum">{% if r.avg is not None %}{{ r.avg }}%{% else %}–{% endif %}</td><td class="text-end tnum">{{ r.attempts }}</td><td class="text-end tnum">{% if r.plan_percent is not None %}{{ r.plan_percent }}%{% else %}–{% endif %}</td><td class="text-end tnum">{{ r.streak }}</td></tr>
+  {% empty %}<tr><td colspan="5"><div class="empty"><p>No students enrolled.</p></div></td></tr>{% endfor %}</tbody></table></section>{% endif %}
+{% endblock %}
+{% block scripts %}{% if report %}{{ report.topic_chart|json_script:"td" }}<script>const D = JSON.parse(document.getElementById("td").textContent); LM.chart("topics", "bar", D.labels, D.values, "Accuracy %", {max: 100, color: "#0D9488"});</script>{% endif %}{% endblock %}

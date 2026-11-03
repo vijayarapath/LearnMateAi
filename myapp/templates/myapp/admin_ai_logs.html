@@ -1,0 +1,11 @@
+{% extends "myapp/base.html" %}
+{% block title %}AI requests{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>AI requests</h1><p>Metadata only: no prompts, answers, keys or student text are stored here.</p></div>
+  <form method="get" class="d-flex gap-2"><select name="service" class="form-select" aria-label="Service"><option value="">All services</option>{% for s in services %}<option {% if request.GET.service == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+  <select name="status" class="form-select" aria-label="Status"><option value="">All</option><option value="errors" {% if request.GET.status == "errors" %}selected{% endif %}>Errors only</option></select><button class="btn btn-outline-primary">Filter</button></form></div>
+<section class="panel"><table class="table mb-0"><thead><tr><th>Time</th><th>Service</th><th>Model</th><th>Result</th><th class="text-end">Latency</th><th class="text-end">In / out (chars)</th></tr></thead><tbody>
+{% for l in page %}<tr><td>{{ l.created_at|date:"j M, H:i:s" }}</td><td>{{ l.service }}</td><td>{{ l.model_name|default:"–" }}</td><td>{% if l.ok %}<span class="chip ok">OK</span>{% else %}<span class="chip bad">{{ l.error_code|default:"error" }}</span>{% endif %}</td><td class="text-end tnum">{{ l.latency_ms }} ms</td><td class="text-end tnum">{{ l.input_chars }} / {{ l.output_chars }}</td></tr>
+{% empty %}<tr><td colspan="6"><div class="empty"><p>No requests match.</p></div></td></tr>{% endfor %}</tbody></table></section>
+{% if page.has_other_pages %}<div class="d-flex gap-2 mt-3">{% if page.has_previous %}<a class="btn btn-outline-primary btn-sm" href="?page={{ page.previous_page_number }}&service={{ request.GET.service }}&status={{ request.GET.status }}">Previous</a>{% endif %}{% if page.has_next %}<a class="btn btn-outline-primary btn-sm" href="?page={{ page.next_page_number }}&service={{ request.GET.service }}&status={{ request.GET.status }}">Next</a>{% endif %}</div>{% endif %}
+{% endblock %}

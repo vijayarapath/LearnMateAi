@@ -1,0 +1,298 @@
+{% extends "myapp/base.html" %}
+{% block title %}Student Dashboard{% endblock %}
+{% block content %}
+
+<!-- Student Hero Banner -->
+<div class="hero-banner hero-student">
+  <div class="hero-content">
+    <div class="hero-title-group">
+      <div class="hero-badge">
+        <i class="bi bi-mortarboard-fill"></i> Student Learning Hub
+      </div>
+      <h1>Welcome back, {{ profile.display_name|truncatechars:28 }}! 👋</h1>
+      <p>
+        {% if stats.streak %}
+          🔥 You're on a <strong>{{ stats.streak }}-day streak</strong>! Keep the momentum going today.
+        {% else %}
+          ✨ Start your learning streak today with a quick quiz or textbook question!
+        {% endif %}
+      </p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-hero-solid" href="{% url 'tutor' %}">
+        <i class="bi bi-stars"></i> Ask AI Tutor
+      </a>
+      <a class="btn-hero-glass" href="{% url 'textbook' %}">
+        <i class="bi bi-camera-fill"></i> Textbook Scan
+      </a>
+      <a class="btn-hero-glass" href="{% url 'quiz_create' %}">
+        <i class="bi bi-patch-question-fill"></i> Take Quiz
+      </a>
+      <a class="btn-hero-glass" href="{% url 'plan_create' %}">
+        <i class="bi bi-calendar-check-fill"></i> Study Plan
+      </a>
+    </div>
+  </div>
+</div>
+
+{% if not profile.can_use_ai %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 border-0 shadow-sm rounded-4 mb-4" style="background:#FFFBEB;">
+  <div class="d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+    <span>AI features are paused. Enable them in privacy settings to start asking questions and scanning textbooks.{% if profile.is_minor and not profile.guardian_consent %} Because you're under 18, guardian agreement is needed.{% endif %}</span>
+  </div>
+  <a class="btn btn-sm btn-outline-dark" href="{% url 'profile' %}">Open Settings</a>
+</div>
+{% endif %}
+
+<!-- Stat Cards Grid -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Day Streak</span>
+      <div class="stat-icon icon-streak"><i class="bi bi-fire"></i></div>
+    </div>
+    <div class="stat-value">{{ stats.streak }} <span class="fs-6 fw-normal text-muted">days</span></div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Hours Learned</span>
+      <div class="stat-icon icon-time"><i class="bi bi-clock-history"></i></div>
+    </div>
+    <div class="stat-value">{{ stats.hours }} <span class="fs-6 fw-normal text-muted">hrs</span></div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Lessons Completed</span>
+      <div class="stat-icon icon-lessons"><i class="bi bi-journal-check"></i></div>
+    </div>
+    <div class="stat-value">{{ stats.lessons }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Quiz Average</span>
+      <div class="stat-icon icon-quiz"><i class="bi bi-trophy-fill"></i></div>
+    </div>
+    <div class="stat-value">
+      {% if stats.quiz_avg is not None %}{{ stats.quiz_avg }}%{% else %}<span class="text-muted">–</span>{% endif %}
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Study Plan Done</span>
+      <div class="stat-icon icon-plan"><i class="bi bi-rocket-takeoff-fill"></i></div>
+    </div>
+    <div class="stat-value">
+      {% if stats.plan_percent is not None %}{{ stats.plan_percent }}%{% else %}<span class="text-muted">–</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left Column: Activity & Results -->
+  <div class="col-lg-8">
+    <!-- Weekly Study Chart -->
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#EEF2FF; color:#4F46E5;"><i class="bi bi-bar-chart-fill"></i></span>
+          Weekly Study Activity
+        </h2>
+        <a href="{% url 'progress' %}" class="small text-decoration-none fw-semibold">View Detailed Progress &rarr;</a>
+      </div>
+      <div class="panel-body" style="height:260px">
+        <canvas id="weekChart" aria-label="Minutes studied per day this week" role="img"></canvas>
+      </div>
+    </section>
+
+    <!-- Study Tasks -->
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#FDF4FF; color:#C026D3;"><i class="bi bi-check2-square"></i></span>
+          Upcoming Study Tasks
+        </h2>
+        <a href="{% url 'plan_list' %}" class="small text-decoration-none fw-semibold">All Plans &rarr;</a>
+      </div>
+      <div class="rows">
+        {% for t in tasks %}
+        <div class="d-flex align-items-center gap-3 py-3">
+          <input type="checkbox" class="form-check-input task-check mt-0 fs-5" data-id="{{ t.id }}" aria-label="Mark {{ t.title }} done" style="cursor:pointer;">
+          <div class="flex-grow-1">
+            <div class="fw-semibold text-dark">{{ t.title }}</div>
+            <div class="small text-muted d-flex align-items-center gap-2 mt-1">
+              <span><i class="bi bi-calendar-event me-1"></i>{{ t.scheduled_date|date:"D, j M" }}</span>
+              <span>&bull;</span>
+              <span><i class="bi bi-clock me-1"></i>{{ t.minutes }} min</span>
+            </div>
+          </div>
+          <span class="chip brand">{{ t.get_kind_display }}</span>
+        </div>
+        {% empty %}
+          {% include "myapp/partials/empty.html" with icon="bi-calendar-check" text="No study tasks due this week. Create a personalized study plan to schedule daily goals." href="/planner/new/" cta="Create a Study Plan" %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Recent Quiz Results -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#F0FDF4; color:#16A34A;"><i class="bi bi-award-fill"></i></span>
+          Recent Quiz Results
+        </h2>
+        <a href="{% url 'quiz_list' %}" class="small text-decoration-none fw-semibold">All Quizzes &rarr;</a>
+      </div>
+      <div class="rows">
+        {% for a in attempts %}
+        <a class="row-link" href="{% url 'quiz_result' a.id %}">
+          <div>
+            <div class="fw-semibold">{{ a.quiz.title }}</div>
+            <span class="small text-muted">{{ a.submitted_at|date:"j M, H:i" }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="chip {% if a.percent >= 70 %}ok{% elif a.percent < 40 %}bad{% else %}warn{% endif %} tnum fs-6 px-3 py-1">
+              {{ a.score }} / {{ a.total }} ({{ a.percent }}%)
+            </span>
+            <i class="bi bi-chevron-right text-muted small"></i>
+          </div>
+        </a>
+        {% empty %}
+        <div class="empty py-4">
+          <i class="bi bi-award"></i>
+          <p>No quiz results yet. Test your knowledge with an AI-generated quiz!</p>
+          <a class="btn btn-primary btn-sm" href="{% url 'quiz_create' %}">Create Your First Quiz</a>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Right Column: Classes, AI Recs & Due Dates -->
+  <div class="col-lg-4">
+    <!-- Active Courses -->
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#EFF6FF; color:#2563EB;"><i class="bi bi-collection-fill"></i></span>
+          My Classes
+        </h2>
+        <a href="{% url 'my_courses' %}" class="small text-decoration-none fw-semibold">View All</a>
+      </div>
+      <div class="rows">
+        {% for c in courses %}
+        <a class="row-link" href="{% url 'course_view' c.id %}">
+          <div>
+            <div class="fw-semibold text-dark">{{ c.title }}</div>
+            <div class="small text-muted mt-1"><span class="badge bg-light text-dark border">{{ c.subject.name }}</span></div>
+          </div>
+          <i class="bi bi-chevron-right text-muted"></i>
+        </a>
+        {% empty %}
+        <div class="empty py-3">
+          <i class="bi bi-backpack"></i>
+          <p>You haven't joined a class yet. Ask your teacher for the join code.</p>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'my_courses' %}">Join a Class</a>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- AI Recommended Topics -->
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#FFF7ED; color:#EA580C;"><i class="bi bi-lightbulb-fill"></i></span>
+          Recommended for You
+        </h2>
+      </div>
+      <div class="rows">
+        {% for r in recommended %}
+        <div>
+          <div class="fw-semibold text-dark">{{ r.topic }}</div>
+          <div class="small text-muted mt-1"><i class="bi bi-info-circle me-1"></i>{{ r.reason }}</div>
+        </div>
+        {% empty %}
+        <div class="empty py-3">
+          <i class="bi bi-stars"></i>
+          <p>AI recommendations will appear after you take a quiz or join a course.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Recent AI Tutor Questions -->
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#F5F3FF; color:#7C3AED;"><i class="bi bi-chat-dots-fill"></i></span>
+          Recent AI Questions
+        </h2>
+      </div>
+      <div class="rows">
+        {% for m in recent_questions %}
+        <a class="row-link" href="{% url 'tutor_conversation' m.conversation_id %}">
+          <span class="text-truncate text-dark"><i class="bi bi-chat-left-text me-2 text-primary"></i>{{ m.content|truncatechars:60 }}</span>
+          <i class="bi bi-chevron-right text-muted small"></i>
+        </a>
+        {% empty %}
+        <div class="empty py-3">
+          <i class="bi bi-chat-square-dots"></i>
+          <p>Have a doubt? Ask the AI tutor anytime!</p>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'tutor' %}">Ask AI a Question</a>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Assignments Due -->
+    {% if due %}
+    <section class="panel">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#FEF2F2; color:#DC2626;"><i class="bi bi-bell-fill"></i></span>
+          Assignments Due
+        </h2>
+      </div>
+      <div class="rows">
+        {% for a in due %}
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold text-dark">{{ a.title }}</div>
+            <div class="small text-muted">{{ a.course.title }}</div>
+          </div>
+          <span class="chip bad"><i class="bi bi-clock me-1"></i>{{ a.due_date|date:"j M" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ weekly|json_script:"weekdata" }}
+<script>
+const W = JSON.parse(document.getElementById("weekdata").textContent);
+LM.chart("weekChart", "bar", W.labels, W.values, "Minutes Studied", {
+  color: "#6366F1",
+  line: "#4F46E5"
+});
+
+document.querySelectorAll(".task-check").forEach(c => c.addEventListener("change", async () => {
+  const r = await LM.post(`/api/tasks/${c.dataset.id}/toggle/`);
+  if (r.ok) {
+    LM.toast("Task updated!", "success");
+    c.closest(".d-flex").style.opacity = c.checked ? .45 : 1;
+  } else {
+    c.checked = !c.checked;
+    LM.toast(r.error || "Could not update", "danger");
+  }
+}));
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "myapp/base.html" %}
+{% block title %}{{ s.profile.display_name }}{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="teacher_courses" parent_label="Classes" here=s.profile.display_name %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ s.profile.display_name }}</h1><p>{{ course.title }}. You can see quiz results and plan progress. AI chats and notes stay private.</p></div></div>
+<div class="figures mb-3"><div class="figure"><div class="v">{{ stats.streak }}</div><div class="l">Day streak</div></div><div class="figure"><div class="v">{{ stats.hours }}</div><div class="l">Hours learned</div></div><div class="figure"><div class="v">{% if stats.quiz_avg is not None %}{{ stats.quiz_avg }}%{% else %}–{% endif %}</div><div class="l">Quiz average</div></div></div>
+<div class="row g-3"><div class="col-lg-6"><section class="panel"><div class="panel-head"><h2>Quiz attempts in this class</h2></div><div class="rows">{% for a in attempts %}<div class="d-flex justify-content-between"><span>{{ a.quiz.title }}<span class="d-block small text-muted">{{ a.submitted_at|date:"j M" }}</span></span><span class="chip tnum">{{ a.score }}/{{ a.total }}</span></div>{% empty %}<div class="empty"><p>No attempts yet.</p></div>{% endfor %}</div></section></div>
+  <div class="col-lg-6"><section class="panel"><div class="panel-head"><h2>Study plans</h2></div><div class="rows">{% for p in plans %}<div>{{ p.goal }}<div class="progress mt-1"><div class="progress-bar" style="width:{{ p.completion_percent }}%"></div></div><div class="small text-muted tnum">{{ p.completion_percent }}% done</div></div>{% empty %}<div class="empty"><p>No active plans.</p></div>{% endfor %}</div></section></div></div>
+{% endblock %}

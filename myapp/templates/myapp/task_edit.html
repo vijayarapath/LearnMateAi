@@ -1,0 +1,7 @@
+{% extends "myapp/base.html" %}
+{% block title %}Edit task{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="plan_list" parent_label="Study planner" here="Edit task" %}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Edit task</h1></div>
+<form method="post" class="panel" style="max-width:560px"><div class="panel-body">{% csrf_token %}{% include "myapp/partials/form_fields.html" with form=form %}<button class="btn btn-primary">Save task</button> <a class="btn btn-quiet" href="{% url 'plan_detail' task.plan_id %}">Cancel</a></div></form>
+{% endblock %}

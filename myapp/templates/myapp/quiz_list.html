@@ -1,0 +1,16 @@
+{% extends "myapp/base.html" %}
+{% block title %}Quizzes{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Quizzes</h1><p>Create a quiz from a topic, your notes or a textbook page.</p></div><a class="btn btn-primary" href="{% url 'quiz_create' %}"><i class="bi bi-plus-lg me-1"></i>New quiz</a></div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    {% if shared %}<section class="panel mb-3"><div class="panel-head"><h2>From your classes</h2></div><div class="rows">{% for q in shared %}<a class="row-link" href="{% url 'quiz_detail' q.pk %}"><span>{{ q.title }}<span class="d-block small text-muted">{{ q.course.title }} · {{ q.questions.count }} questions</span></span><i class="bi bi-chevron-right text-muted"></i></a>{% endfor %}</div></section>{% endif %}
+    <section class="panel"><div class="panel-head"><h2>{% if role == "student" %}Your quizzes{% else %}Quizzes you made{% endif %}</h2></div><div class="rows">
+      {% for q in mine %}<a class="row-link" href="{% url 'quiz_detail' q.pk %}"><span>{{ q.title }}<span class="d-block small text-muted">{{ q.subject }} · {{ q.get_difficulty_display }} · {{ q.questions.count }} questions</span></span>
+        <span>{% if q.ai_generated %}<span class="chip warn">AI-generated</span>{% endif %}{% if q.published %} <span class="chip ok">Published</span>{% endif %}</span></a>
+      {% empty %}{% include "myapp/partials/empty.html" with icon="bi-patch-question" text="No quizzes yet. Choose a topic and level and we will build one." href="/quizzes/new/" cta="Create a quiz" %}{% endfor %}</div></section></div>
+  <div class="col-lg-5"><section class="panel"><div class="panel-head"><h2>Your recent attempts</h2></div><div class="rows">
+    {% for a in attempts %}<a class="row-link" href="{% url 'quiz_result' a.id %}"><span>{{ a.quiz.title }}<span class="d-block small text-muted">{{ a.submitted_at|date:"j M, H:i" }}</span></span><span class="chip tnum">{{ a.score }}/{{ a.total }}</span></a>
+    {% empty %}<div class="empty"><p>Finished attempts appear here.</p></div>{% endfor %}</div></section></div>
+</div>
+{% endblock %}

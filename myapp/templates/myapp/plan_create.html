@@ -1,0 +1,9 @@
+{% extends "myapp/base.html" %}
+{% block title %}New study plan{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="plan_list" parent_label="Study planner" here="New plan" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Create a study plan</h1><p>The schedule is built from your inputs and your quiz history. No AI credentials needed.</p></div></div>
+<div class="row g-3"><div class="col-lg-7"><form method="post" class="panel"><div class="panel-body">{% csrf_token %}{% include "myapp/partials/form_fields.html" with form=form %}<button class="btn btn-primary">Build my plan</button></div></form></div>
+  <div class="col-lg-5">{% if weak %}<section class="panel"><div class="panel-head"><h2>Topics worth revising</h2></div><div class="rows">{% for t in weak %}<div>{{ t }}<div class="small text-muted">Low quiz accuracy. If you add it, it is scheduled first.</div></div>{% endfor %}</div></section>
+  {% else %}<section class="panel"><div class="panel-body text-muted">After you take quizzes, topics you struggle with are scheduled first and flagged here.</div></section>{% endif %}</div></div>
+{% endblock %}

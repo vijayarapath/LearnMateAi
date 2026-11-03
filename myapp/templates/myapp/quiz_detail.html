@@ -1,0 +1,17 @@
+{% extends "myapp/base.html" %}
+{% block title %}{{ quiz.title }}{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="quiz_list" parent_label="Quizzes" here=quiz.title %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ quiz.title }}</h1><p>{{ quiz.subject }} · {{ quiz.get_question_type_display }} · {{ quiz.get_difficulty_display }}{% if quiz.timer_minutes %} · {{ quiz.timer_minutes }} min timer{% endif %}</p></div>
+  <div class="quick">
+    <form method="post" action="{% url 'quiz_start' quiz.pk %}">{% csrf_token %}<button class="btn btn-primary" {% if not quiz.questions.exists %}disabled{% endif %}>{% if last %}Take again{% else %}Start quiz{% endif %}</button></form>
+    {% if can_edit and quiz.course %}<form method="post" action="{% url 'quiz_publish' quiz.pk %}">{% csrf_token %}<button class="btn btn-outline-primary">{% if quiz.published %}Unpublish{% else %}Publish to class{% endif %}</button></form>{% endif %}
+    {% if can_edit %}<form method="post" action="{% url 'quiz_delete' quiz.pk %}" data-confirm="Delete this quiz and its results?">{% csrf_token %}<button class="btn btn-outline-danger">Delete</button></form>{% endif %}</div></div>
+{% if quiz.ai_generated %}<div class="alert alert-warning py-2">These questions were written by AI. Check them against trusted material.</div>{% endif %}
+{% if last %}<p>Your last score: <a href="{% url 'quiz_result' last.id %}"><strong class="tnum">{{ last.score }}/{{ last.total }}</strong></a></p>{% endif %}
+<section class="panel"><div class="panel-head"><h2>{{ quiz.questions.count }} question{{ quiz.questions.count|pluralize }}</h2></div><div class="rows">
+  {% for q in quiz.questions.all %}<div><div class="d-flex justify-content-between gap-3"><div>{{ q.text }}{% if show_answers %}<div class="small mt-1">{% for o in q.options %}<span class="chip {% if o == q.correct_answer %}ok{% endif %} me-1">{{ o }}</span>{% endfor %}{% if not q.options %}<span class="chip ok">{{ q.correct_answer }}</span>{% endif %}</div>{% endif %}</div>
+    {% if can_edit %}<form method="post" action="{% url 'question_delete' q.pk %}">{% csrf_token %}<button class="btn btn-quiet btn-sm" aria-label="Remove question"><i class="bi bi-x-lg"></i></button></form>{% endif %}</div></div>
+  {% empty %}<div class="empty"><p>No questions yet.</p></div>{% endfor %}</div></section>
+{% if can_edit %}<section class="panel mt-3"><div class="panel-head"><h2>Add a question by hand</h2></div><form method="post" action="{% url 'question_add' quiz.pk %}" class="panel-body">{% csrf_token %}{% include "myapp/partials/form_fields.html" with form=form %}<button class="btn btn-outline-primary">Add question</button></form></section>{% endif %}
+{% endblock %}

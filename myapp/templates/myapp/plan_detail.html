@@ -1,0 +1,32 @@
+{% extends "myapp/base.html" %}
+{% block title %}{{ plan.goal }}{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="plan_list" parent_label="Study planner" here=plan.goal %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ plan.goal }}</h1><p>{{ plan.subject }} · {{ plan.start_date|date:"j M" }} to {{ plan.target_date|date:"j M Y" }} · {{ plan.daily_minutes }} min a day</p></div>
+  <form method="post" action="{% url 'plan_delete' plan.pk %}" data-confirm="Delete this plan?">{% csrf_token %}<button class="btn btn-outline-danger btn-sm">Delete plan</button></form></div>
+<div class="panel mb-3"><div class="panel-body d-flex align-items-center gap-3 flex-wrap"><div style="min-width:200px;flex:1"><div class="d-flex justify-content-between small"><span>Progress</span><span class="tnum" id="pct">{{ plan.completion_percent }}%</span></div><div class="progress mt-1"><div class="progress-bar" id="pbar" style="width:{{ plan.completion_percent }}%"></div></div></div>
+  <form method="post" action="{% url 'plan_reschedule' plan.pk %}" class="d-flex gap-2 align-items-end">{% csrf_token %}<div><label class="form-label small" for="nt">New finish date (optional)</label><input id="nt" type="date" name="target_date" class="form-control form-control-sm"></div><button class="btn btn-outline-primary btn-sm">Reschedule unfinished tasks</button></form></div>
+  {% if overdue %}<div class="px-3 pb-3"><span class="chip warn">{{ overdue }} overdue task{{ overdue|pluralize }}</span></div>{% endif %}</div>
+<div class="row g-3"><div class="col-lg-8">
+  {% for d, tasks in days %}<section class="panel mb-3"><div class="panel-head"><h2>{{ d|date:"l, j M" }}{% if d == today %} <span class="chip brand ms-1">Today</span>{% endif %}</h2><span class="small text-muted tnum">{% for t in tasks %}{% if forloop.first %}{% endif %}{% endfor %}</span></div>
+    <div class="rows">{% for t in tasks %}<div class="d-flex align-items-start gap-3"><input type="checkbox" class="form-check-input task-check mt-1" data-id="{{ t.id }}" {% if t.completed %}checked{% endif %} aria-label="Mark {{ t.title }} done">
+      <div class="flex-grow-1 {% if t.completed %}text-muted{% endif %}"><div>{{ t.title }}</div><div class="small text-muted">{{ t.minutes }} min{% if t.practice_prompt %} · {{ t.practice_prompt }}{% endif %}</div></div>
+      <span class="chip {% if t.kind == 'revise' %}warn{% elif t.kind == 'milestone' %}ok{% else %}brand{% endif %}">{{ t.get_kind_display }}</span>
+      <a class="btn btn-quiet btn-sm" href="{% url 'task_edit' t.pk %}" aria-label="Edit task"><i class="bi bi-pencil"></i></a>
+      <form method="post" action="{% url 'task_delete' t.pk %}" data-confirm="Remove this task?">{% csrf_token %}<button class="btn btn-quiet btn-sm" aria-label="Remove task"><i class="bi bi-x-lg"></i></button></form></div>{% endfor %}</div></section>
+  {% endfor %}</div>
+  <div class="col-lg-4"><section class="panel"><div class="panel-head"><h2>Add a task</h2></div><form method="post" action="{% url 'task_add' plan.pk %}" class="panel-body">{% csrf_token %}
+    <div class="mb-2"><label class="form-label" for="tt">Title</label><input id="tt" name="title" class="form-control" required maxlength="200"></div>
+    <div class="mb-2"><label class="form-label" for="td">Date</label><input id="td" type="date" name="scheduled_date" class="form-control" required value="{{ today|date:'Y-m-d' }}"></div>
+    <div class="row g-2 mb-3"><div class="col"><label class="form-label" for="tm">Minutes</label><input id="tm" type="number" name="minutes" value="30" min="5" max="300" class="form-control"></div>
+      <div class="col"><label class="form-label" for="tp">Priority</label><select id="tp" name="priority" class="form-select"><option value="1">High</option><option value="2" selected>Normal</option><option value="3">Low</option></select></div></div>
+    <button class="btn btn-outline-primary w-100">Add task</button></form></section></div></div>
+{% endblock %}
+{% block scripts %}<script>
+document.querySelectorAll(".task-check").forEach(c => c.addEventListener("change", async () => {
+  const r = await LM.post(`/api/tasks/${c.dataset.id}/toggle/`);
+  if (!r.ok) { c.checked = !c.checked; return LM.toast(r.error || "Could not update", "danger"); }
+  document.getElementById("pct").textContent = r.percent + "%"; document.getElementById("pbar").style.width = r.percent + "%";
+  c.closest(".d-flex").querySelector(".flex-grow-1").classList.toggle("text-muted", r.completed);
+}));
+</script>{% endblock %}

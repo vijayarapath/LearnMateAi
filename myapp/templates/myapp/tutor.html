@@ -1,0 +1,122 @@
+{% extends "myapp/base.html" %}
+{% block title %}AI tutor{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>AI tutor</h1><p>Ask in Tamil or English. Answers are AI-generated, not verified teaching material.</p></div>
+  <a class="btn btn-outline-primary" href="{% url 'tutor' %}">New conversation</a></div>
+{% if not profile.can_use_ai %}<div class="alert alert-warning">AI features are off for your account. <a href="{% url 'profile' %}">Open privacy settings</a> to turn them on.</div>{% endif %}
+<div class="chat-wrap">
+  <aside class="panel"><div class="panel-head"><h2>History</h2></div>
+    <div class="rows" style="max-height:420px;overflow:auto">{% for c in conversations %}
+      <div class="d-flex justify-content-between align-items-center gap-2 {% if current and current.pk == c.pk %}bg-light{% endif %}">
+        <a class="text-truncate text-decoration-none" href="{% url 'tutor_conversation' c.pk %}">{{ c.title }}</a>
+        <form method="post" action="{% url 'conversation_delete' c.pk %}" data-confirm="Delete this conversation?">{% csrf_token %}<button class="btn btn-quiet btn-sm" aria-label="Delete conversation"><i class="bi bi-trash"></i></button></form></div>
+    {% empty %}<div class="empty"><p>Your conversations are saved here.</p></div>{% endfor %}</div></aside>
+  <section class="panel">
+    <div class="panel-body border-bottom"><div class="row g-2">
+      <div class="col-6 col-md-3"><label class="form-label" for="optGrade">Grade</label><input id="optGrade" class="form-control form-control-sm" value="{{ defaults.grade }}" maxlength="40"></div>
+      <div class="col-6 col-md-3"><label class="form-label" for="optSubject">Subject</label><input id="optSubject" class="form-control form-control-sm" value="{{ defaults.subject }}" maxlength="80" placeholder="Science"></div>
+      <div class="col-6 col-md-2"><label class="form-label" for="optLang">Language</label><select id="optLang" class="form-select form-select-sm">{% for v, l in langs %}<option value="{{ v }}" {% if defaults.language == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-md-2"><label class="form-label" for="optLevel">Difficulty</label><select id="optLevel" class="form-select form-select-sm">{% for v, l in levels %}<option value="{{ v }}" {% if defaults.difficulty == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="col-12 col-md-2"><label class="form-label" for="optDetail">Answer</label><select id="optDetail" class="form-select form-select-sm"><option value="short" {% if defaults.detail == "short" %}selected{% endif %}>Short</option><option value="detailed" {% if defaults.detail == "detailed" %}selected{% endif %}>Step by step</option></select></div>
+    </div></div>
+    <div class="chat-stream" id="stream" aria-live="polite">
+      {% for m in messages_list %}
+        <div class="msg" data-id="{{ m.id }}" data-role="{{ m.role }}"><div class="bubble {{ m.role }}">{{ m.content }}</div>
+        {% if m.role == "assistant" %}<div class="ai-tag">AI-generated. Check important facts.</div>{% endif %}</div>
+      {% empty %}<div class="empty" id="starter"><i class="bi bi-chat-dots"></i><p>Try: “Why is the sky blue?” or “Explain photosynthesis for Grade 9”.</p></div>{% endfor %}
+    </div>
+    <div class="composer">
+      <div id="voiceReview" class="alert alert-info py-2 d-none"><div class="small mb-1">Check what we heard, then edit it if needed.</div></div>
+      <div class="d-flex gap-2 align-items-end">
+        <button class="btn btn-outline-primary" id="micBtn" type="button" aria-label="Record a spoken question" title="Speak your question"><i class="bi bi-mic"></i></button>
+        <textarea id="q" class="form-control" rows="2" maxlength="2000" placeholder="Type your question" aria-label="Your question"></textarea>
+        <button class="btn btn-primary" id="sendBtn" type="button"><i class="bi bi-send"></i><span class="visually-hidden">Send</span></button>
+      </div>
+      <div class="small text-muted mt-1" id="micStatus"></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  let convId = {{ current.pk|default:"null" }};
+  const $ = (id) => document.getElementById(id), stream = $("stream"), q = $("q");
+  let lastPayload = null, source = "text";
+
+  const scroll = () => { stream.scrollTop = stream.scrollHeight; };
+  function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; }
+  function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+  function addUser(text, id) { $("starter")?.remove(); const n = el(`<div class="msg" data-id="${id || ""}" data-role="user"><div class="bubble user">${esc(text)}</div></div>`); stream.appendChild(n); scroll(); return n; }
+  function addAI(m) {
+    const n = el(`<div class="msg" data-id="${m.id}" data-role="assistant"><div class="bubble assistant">${esc(m.content)}</div><div class="ai-tag">AI-generated. Check important facts.</div>
+      <div class="msg-actions">
+        <button class="btn btn-quiet" data-act="copy"><i class="bi bi-clipboard"></i> Copy</button>
+        <button class="btn btn-quiet" data-act="regen"><i class="bi bi-arrow-repeat"></i> Regenerate</button>
+        <button class="btn btn-quiet" data-act="note"><i class="bi bi-bookmark"></i> Save as note</button>
+        <button class="btn btn-quiet" data-act="up" aria-label="Helpful"><i class="bi bi-hand-thumbs-up"></i></button>
+        <button class="btn btn-quiet" data-act="down" aria-label="Not helpful"><i class="bi bi-hand-thumbs-down"></i></button></div></div>`);
+    stream.appendChild(n); scroll();
+  }
+  function addError(text, retry) {
+    const n = el(`<div class="msg err"><div class="bubble error">${esc(text)}</div>${retry ? '<div class="msg-actions"><button class="btn btn-quiet" data-act="retry"><i class="bi bi-arrow-repeat"></i> Try again</button></div>' : ""}</div>`);
+    stream.appendChild(n); scroll();
+  }
+  const typing = () => el('<div class="msg typingrow"><div class="bubble assistant typing" aria-label="AI is writing"><span></span><span></span><span></span></div></div>');
+
+  async function send(payload, addBubble = true) {
+    lastPayload = payload;
+    if (addBubble) addUser(payload.question);
+    const t = typing(); stream.appendChild(t); scroll();
+    $("sendBtn").disabled = true;
+    const r = await LM.post("/api/tutor/ask/", payload);
+    t.remove(); $("sendBtn").disabled = false;
+    if (r.conversation_id) { convId = r.conversation_id; history.replaceState({}, "", `/tutor/${convId}/`); }
+    if (r.ok) { addAI(r.message); if (r.flag) LM.toast("That message looks like an instruction to the AI. It was treated as a normal question.", "warning"); }
+    else addError(r.error || "Something went wrong.", r.retryable !== false);
+  }
+  function collect(text) {
+    return { question: text, conversation_id: convId, grade: $("optGrade").value, subject: $("optSubject").value, language: $("optLang").value,
+             difficulty: $("optLevel").value, detail: $("optDetail").value, source };
+  }
+  $("sendBtn").onclick = () => { const t = q.value.trim(); if (!t) return; q.value = ""; $("voiceReview").classList.add("d-none"); send(collect(t)); source = "text"; };
+  q.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("sendBtn").click(); } });
+
+  stream.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const msg = b.closest(".msg"), id = msg?.dataset.id, act = b.dataset.act;
+    if (act === "retry") { b.closest(".msg").remove(); const p = Object.assign({}, lastPayload, { conversation_id: convId }); // question already saved: ask again without duplicating the bubble
+      return send(p, false); }
+    if (act === "copy") { await navigator.clipboard.writeText(msg.querySelector(".bubble").textContent); return LM.toast("Copied", "success"); }
+    if (act === "regen") { b.disabled = true; const r = await LM.post(`/api/tutor/messages/${id}/regenerate/`); b.disabled = false;
+      if (r.ok) { msg.querySelector(".bubble").textContent = r.message.content; LM.toast("New answer ready", "success"); } else LM.toast(r.error, "danger"); return; }
+    if (act === "note") { const r = await LM.post(`/api/tutor/messages/${id}/save-note/`); return r.ok ? LM.toast("Saved to your notes", "success") : LM.toast(r.error || "Could not save", "danger"); }
+    if (act === "up" || act === "down") { const r = await LM.post(`/api/tutor/messages/${id}/feedback/`, { value: act === "up" ? 1 : -1 }); if (r.ok) LM.toast("Thanks for the feedback", "success"); }
+  });
+
+  // ---- voice: record, transcribe, let the student edit, then send
+  const mic = $("micBtn"), status = $("micStatus");
+  let rec = null, chunks = [];
+  mic.onclick = async () => {
+    if (rec && rec.state === "recording") { rec.stop(); return; }
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { status.textContent = "Recording is not available in this browser. Type your question instead."; return; }
+    let stream_;
+    try { stream_ = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (err) { status.textContent = "Microphone access was blocked. Allow it in your browser settings, or type your question."; return; }
+    chunks = []; rec = new MediaRecorder(stream_);
+    rec.ondataavailable = (e) => chunks.push(e.data);
+    rec.onstop = async () => {
+      stream_.getTracks().forEach((t) => t.stop()); mic.classList.remove("rec-pulse", "btn-danger"); mic.classList.add("btn-outline-primary");
+      const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+      status.textContent = "Transcribing…";
+      const fd = new FormData(); fd.append("audio", blob, "question.webm"); fd.append("language", $("optLang").value);
+      const r = await LM.post("/api/voice/transcribe/", fd);
+      if (r.ok) { q.value = r.text; source = "voice"; status.textContent = "Check the text below, edit it if needed, then press send."; q.focus(); }
+      else { status.innerHTML = ""; status.textContent = (r.error || "Transcription failed.") + (r.retryable ? " Press the microphone to try again." : ""); }
+    };
+    rec.start(); mic.classList.remove("btn-outline-primary"); mic.classList.add("btn-danger", "rec-pulse"); status.textContent = "Recording… press the microphone again to stop.";
+  };
+  scroll();
+})();
+</script>
+{% endblock %}

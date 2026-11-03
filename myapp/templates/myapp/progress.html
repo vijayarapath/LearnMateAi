@@ -1,0 +1,11 @@
+{% extends "myapp/base.html" %}
+{% block title %}Progress{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Your progress</h1><p>Built from your quizzes, study plans and activity.</p></div></div>
+<div class="figures mb-3"><div class="figure"><div class="v">{{ stats.streak }}</div><div class="l">Day streak</div></div><div class="figure"><div class="v">{{ stats.hours }}</div><div class="l">Hours learned</div></div>
+  <div class="figure"><div class="v">{{ stats.quiz_count }}</div><div class="l">Quizzes taken</div></div><div class="figure"><div class="v">{% if stats.quiz_avg is not None %}{{ stats.quiz_avg }}%{% else %}–{% endif %}</div><div class="l">Quiz average</div></div></div>
+<div class="row g-3"><div class="col-lg-6"><section class="panel"><div class="panel-head"><h2>Quiz scores over time</h2></div><div class="panel-body" style="height:260px">{% if trend.values %}<canvas id="trend" role="img" aria-label="Quiz scores over time"></canvas>{% else %}<div class="empty"><p>Take a quiz to see your trend.</p></div>{% endif %}</div></section></div>
+  <div class="col-lg-6"><section class="panel"><div class="panel-head"><h2>Topic accuracy</h2></div><div class="rows">{% for p in perf %}<div><div class="d-flex justify-content-between"><span>{{ p.topic }}</span><span class="tnum">{{ p.percent }}%</span></div><div class="progress mt-1"><div class="progress-bar {% if p.percent < 60 %}bg-warning{% endif %}" style="width:{{ p.percent }}%"></div></div></div>
+  {% empty %}<div class="empty"><p>Topic accuracy appears after your first quiz.</p></div>{% endfor %}</div></section></div></div>
+{% endblock %}
+{% block scripts %}{{ trend|json_script:"trenddata" }}<script>const T = JSON.parse(document.getElementById("trenddata").textContent); LM.chart("trend", "line", T.labels, T.values, "Score %", {max: 100});</script>{% endblock %}

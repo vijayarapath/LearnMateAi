@@ -1,0 +1,175 @@
+{% extends "myapp/base.html" %}
+{% block title %}Teacher Overview{% endblock %}
+{% block content %}
+
+<!-- Teacher Hero Banner -->
+<div class="hero-banner hero-teacher">
+  <div class="hero-content">
+    <div class="hero-title-group">
+      <div class="hero-badge">
+        <i class="bi bi-person-workspace"></i> Educator Studio & Classroom Hub
+      </div>
+      <h1>Welcome back, {{ profile.display_name }}! 🎓</h1>
+      <p>
+        Monitor student progress, publish AI-assisted quizzes, and manage your courses with real-time analytics.
+      </p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-hero-solid" href="{% url 'teacher_courses' %}">
+        <i class="bi bi-mortarboard-fill"></i> Manage Classes
+      </a>
+      <a class="btn-hero-glass" href="{% url 'quiz_create' %}">
+        <i class="bi bi-plus-circle-fill"></i> Create New Quiz
+      </a>
+      <a class="btn-hero-glass" href="{% url 'teacher_reports' %}">
+        <i class="bi bi-graph-up-arrow"></i> Analytics & Reports
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Stat Cards Grid -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Active Classes</span>
+      <div class="stat-icon icon-classes"><i class="bi bi-book-half"></i></div>
+    </div>
+    <div class="stat-value">{{ courses|length }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Total Students</span>
+      <div class="stat-icon icon-students"><i class="bi bi-people-fill"></i></div>
+    </div>
+    <div class="stat-value">{{ student_count }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Quiz Attempts</span>
+      <div class="stat-icon icon-attempts"><i class="bi bi-pencil-square"></i></div>
+    </div>
+    <div class="stat-value">{{ attempt_count }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Class Average</span>
+      <div class="stat-icon icon-score"><i class="bi bi-award-fill"></i></div>
+    </div>
+    <div class="stat-value">
+      {% if attempt_count %}{{ avg }}%{% else %}<span class="text-muted">–</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left Column: Classes -->
+  <div class="col-lg-6">
+    <section class="panel h-100">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#EFF6FF; color:#2563EB;"><i class="bi bi-collection-fill"></i></span>
+          Your Classes
+        </h2>
+        <a class="btn btn-sm btn-primary" href="{% url 'teacher_courses' %}">
+          <i class="bi bi-plus-lg me-1"></i> New Class
+        </a>
+      </div>
+      <div class="rows">
+        {% for c in courses %}
+        <a class="class-card-item" href="{% url 'teacher_course' c.id %}">
+          <div class="flex-grow-1 pe-3">
+            <div class="fw-bold text-dark fs-6">{{ c.title }}</div>
+            <div class="d-flex align-items-center gap-2 mt-2">
+              <span class="join-code-badge" title="Share this code with students">
+                <i class="bi bi-key-fill text-muted"></i> Code: <strong>{{ c.join_code }}</strong>
+              </span>
+              {% if c.subject %}
+                <span class="badge bg-light text-muted border">{{ c.subject.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="chip brand fs-6 py-1 px-3">
+              <i class="bi bi-person-fill"></i> {{ c.n }} student{{ c.n|pluralize }}
+            </span>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </div>
+        </a>
+        {% empty %}
+        <div class="empty py-5">
+          <i class="bi bi-journal-plus"></i>
+          <p class="fs-6">No classes created yet. Create a class to generate a join code for your students.</p>
+          <a class="btn btn-primary" href="{% url 'teacher_courses' %}">Create Your First Class</a>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Right Column: Recent Attempts & Due Dates -->
+  <div class="col-lg-6">
+    <!-- Recent Quiz Attempts -->
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#FDF4FF; color:#A855F7;"><i class="bi bi-activity"></i></span>
+          Recent Student Attempts
+        </h2>
+        <a class="small text-decoration-none fw-semibold" href="{% url 'teacher_reports' %}">Full Reports &rarr;</a>
+      </div>
+      <div class="rows">
+        {% for a in recent_attempts %}
+        <div class="d-flex justify-content-between align-items-center py-3">
+          <div class="d-flex align-items-center gap-3">
+            <span class="avatar fs-6" style="background:#F3E8FF; color:#7E22CE; border-color:#E9D5FF;">
+              {{ a.student.profile.display_name|slice:":1"|upper }}
+            </span>
+            <div>
+              <div class="fw-bold text-dark">{{ a.student.profile.display_name }}</div>
+              <div class="small text-muted">{{ a.quiz.title }}</div>
+            </div>
+          </div>
+          <span class="chip tnum fs-6 px-3 py-1 {% if a.percent >= 70 %}ok{% elif a.percent < 40 %}bad{% else %}warn{% endif %}">
+            {{ a.percent|floatformat:0 }}%
+          </span>
+        </div>
+        {% empty %}
+        <div class="empty py-4">
+          <i class="bi bi-clipboard-check"></i>
+          <p>Quiz results will appear here once students submit their answers.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Upcoming Due Dates -->
+    {% if upcoming %}
+    <section class="panel">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#FFFBEB; color:#D97706;"><i class="bi bi-calendar-event-fill"></i></span>
+          Upcoming Assignment Deadlines
+        </h2>
+      </div>
+      <div class="rows">
+        {% for a in upcoming %}
+        <div class="d-flex justify-content-between align-items-center py-3">
+          <div>
+            <div class="fw-semibold text-dark">{{ a.title }}</div>
+            <div class="small text-muted"><i class="bi bi-book me-1"></i>{{ a.course.title }}</div>
+          </div>
+          <span class="chip warn">
+            <i class="bi bi-clock-history me-1"></i>Due {{ a.due_date|date:"j M" }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

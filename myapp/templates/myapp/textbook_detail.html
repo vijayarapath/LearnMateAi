@@ -1,0 +1,34 @@
+{% extends "myapp/base.html" %}
+{% block title %}{{ item.title|default:"Textbook upload" }}{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="textbook" parent_label="Textbook upload" here=item.title|default:"Upload" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ item.title|default:"Textbook upload" }}</h1><p>{{ item.created_at|date:"j M Y, H:i" }}{% if item.subject %} · {{ item.subject }}{% endif %}</p></div>
+  <form method="post" action="{% url 'textbook_delete' item.pk %}" data-confirm="Delete this upload and its explanation?">{% csrf_token %}<button class="btn btn-outline-danger btn-sm">Delete</button></form></div>
+<div class="row g-3">
+  <div class="col-lg-5"><section class="panel"><div class="panel-body">
+    <div class="crop-stage"><img src="{% url 'private_media' 'textbook' item.pk %}" alt="Your uploaded textbook page">
+      {% if extracted.segments %}{% for s in extracted.segments %}<div class="crop-box" style="left:{{ s.box.0 }}%;top:{{ s.box.1 }}%;width:{{ s.box.2 }}%;height:{{ s.box.3 }}%" title="{{ s.label }}"></div>{% endfor %}{% endif %}</div>
+    {% if extracted.segments %}<div class="legend-list mt-2">{% for s in extracted.segments %}<span class="chip brand">{{ s.label|default:"Region" }}</span>{% endfor %}</div>{% endif %}
+  </div></section></div>
+  <div class="col-lg-7">
+    {% if item.status == "failed" %}<div class="alert alert-danger">{{ item.error|default:"This image could not be processed." }} <a href="{% url 'textbook' %}">Upload again</a></div>{% endif %}
+    <section class="panel mb-3"><div class="panel-head"><h2>Explanation</h2><span class="chip warn">AI-generated</span></div><div class="panel-body" style="white-space:pre-wrap">{{ item.explanation|default:"No explanation yet." }}</div></section>
+    {% if item.status == "done" %}
+    <section class="panel mb-3"><div class="panel-head"><h2>Make study material</h2></div><div class="panel-body">
+      <div class="quick mb-3"><button class="btn btn-outline-primary btn-sm derive" data-kind="notes">Notes</button><button class="btn btn-outline-primary btn-sm derive" data-kind="summary">Summary</button><button class="btn btn-primary btn-sm derive" data-kind="quiz">Quiz from this page</button></div>
+      <div id="derived" style="white-space:pre-wrap">{% if extracted.notes %}<strong>Notes</strong><br>{{ extracted.notes }}<br><br>{% endif %}{% if extracted.summary %}<strong>Summary</strong><br>{{ extracted.summary }}{% endif %}</div>
+      <div id="derr" class="text-danger small mt-2"></div></div></section>
+    <section class="panel"><div class="panel-head"><h2>Text read from the image</h2></div><div class="panel-body small text-muted" style="white-space:pre-wrap;max-height:240px;overflow:auto">{{ extracted.text }}</div></section>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+document.querySelectorAll(".derive").forEach(b => b.onclick = async () => {
+  b.disabled = true; $err = document.getElementById("derr"); $err.textContent = "";
+  const r = await LM.post("/api/textbook/{{ item.pk }}/derive/", { kind: b.dataset.kind }); b.disabled = false;
+  if (!r.ok) { $err.textContent = r.error || "Could not create this."; return; }
+  if (r.url) { location.href = r.url; return; }
+  const d = document.getElementById("derived"); const h = document.createElement("div"); h.innerHTML = "<strong></strong><br>"; h.querySelector("strong").textContent = r.kind === "notes" ? "Notes" : "Summary";
+  const t = document.createElement("div"); t.textContent = r.text; d.prepend(document.createElement("br"), t, h);
+});
+</script>{% endblock %}

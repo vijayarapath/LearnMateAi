@@ -1,0 +1,7 @@
+{% extends "myapp/base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Notifications</h1></div><form method="post">{% csrf_token %}<button class="btn btn-outline-primary btn-sm">Mark all as read</button></form></div>
+<section class="panel"><div class="rows">{% for n in items %}<a class="row-link" href="{% url 'notification_open' n.pk %}"><span class="{% if not n.is_read %}fw-semibold{% endif %}">{{ n.title }}{% if n.body %}<span class="d-block small text-muted fw-normal">{{ n.body }}</span>{% endif %}</span><span class="small text-muted">{{ n.created_at|date:"j M, H:i" }}</span></a>
+{% empty %}{% include "myapp/partials/empty.html" with icon="bi-bell" text="No notifications yet. Reminders and class updates will appear here." %}{% endfor %}</div></section>
+{% endblock %}

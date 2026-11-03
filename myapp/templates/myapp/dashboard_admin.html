@@ -1,0 +1,207 @@
+{% extends "myapp/base.html" %}
+{% block title %}Admin Command Center{% endblock %}
+{% block content %}
+
+<!-- Admin Hero Banner -->
+<div class="hero-banner hero-admin">
+  <div class="hero-content">
+    <div class="hero-title-group">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <div class="hero-badge">
+          <i class="bi bi-shield-lock-fill"></i> System Administration
+        </div>
+        <div class="hero-badge" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #A7F3D0;">
+          <span class="pulse-dot me-1"></span> Live Telemetry Active
+        </div>
+      </div>
+      <h1>Platform Command Center ⚡</h1>
+      <p>
+        System health, AI model latencies, user distribution, and moderation telemetry across LearnMate AI.
+      </p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-hero-solid" href="{% url 'admin_users' %}">
+        <i class="bi bi-people-fill"></i> Manage Users
+      </a>
+      <a class="btn-hero-glass" href="{% url 'admin_subjects' %}">
+        <i class="bi bi-collection-fill"></i> Subjects Catalog
+      </a>
+      <a class="btn-hero-glass" href="{% url 'admin_config' %}">
+        <i class="bi bi-sliders"></i> AI Config
+      </a>
+      <a class="btn-hero-glass" href="{% url 'admin:index' %}">
+        <i class="bi bi-database-fill-gear"></i> Django Admin
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Stat Cards Grid -->
+<div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Total Users</span>
+      <div class="stat-icon icon-users"><i class="bi bi-people-fill"></i></div>
+    </div>
+    <div class="stat-value">{{ s.users }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Students</span>
+      <div class="stat-icon icon-students"><i class="bi bi-mortarboard-fill"></i></div>
+    </div>
+    <div class="stat-value">{{ s.students }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Teachers</span>
+      <div class="stat-icon icon-classes"><i class="bi bi-person-badge-fill"></i></div>
+    </div>
+    <div class="stat-value">{{ s.teachers }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">Courses</span>
+      <div class="stat-icon icon-lessons"><i class="bi bi-book-half"></i></div>
+    </div>
+    <div class="stat-value">{{ s.courses }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">AI Requests (7d)</span>
+      <div class="stat-icon icon-requests"><i class="bi bi-cpu-fill"></i></div>
+    </div>
+    <div class="stat-value">{{ s.ai_requests_7d }}</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <span class="stat-label">AI Errors (7d)</span>
+      <div class="stat-icon icon-errors"><i class="bi bi-exclamation-octagon-fill"></i></div>
+    </div>
+    <div class="stat-value {% if s.ai_errors_7d %}text-danger{% endif %}">{{ s.ai_errors_7d }}</div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left Column: AI Model Telemetry -->
+  <div class="col-lg-7">
+    <section class="panel h-100">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#ECFEFF; color:#0891B2;"><i class="bi bi-activity"></i></span>
+          AI Model Requests &amp; Latency (7 Days)
+        </h2>
+        <a class="small text-decoration-none fw-semibold" href="{% url 'admin_ai_logs' %}">View All Logs &rarr;</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead>
+            <tr>
+              <th>Model Service</th>
+              <th class="text-end">Request Volume</th>
+              <th class="text-end">Avg Latency</th>
+              <th class="text-end">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in s.by_service %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="badge bg-light text-dark border p-2"><i class="bi bi-robot text-primary"></i></div>
+                  <div class="fw-bold">{{ r.service }}</div>
+                </div>
+              </td>
+              <td class="text-end tnum fw-semibold fs-6">
+                {{ r.n }} <span class="small text-muted fw-normal">calls</span>
+              </td>
+              <td class="text-end tnum">
+                <span class="badge {% if r.avg < 1500 %}bg-success-subtle text-success border border-success-subtle{% elif r.avg < 3000 %}bg-warning-subtle text-warning border border-warning-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-2 py-1">
+                  <i class="bi bi-stopwatch me-1"></i>{{ r.avg|floatformat:0 }} ms
+                </span>
+              </td>
+              <td class="text-end">
+                <span class="chip ok py-1 px-2"><i class="bi bi-check-circle-fill"></i> Active</span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4">
+                <div class="empty py-5">
+                  <i class="bi bi-cpu"></i>
+                  <p>No AI requests recorded in the last 7 days. AI model credentials can be configured anytime.</p>
+                  <a class="btn btn-outline-primary btn-sm" href="{% url 'admin_config' %}">Configure AI Settings</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Right Column: Error Telemetry & Moderation -->
+  <div class="col-lg-5">
+    <!-- Model Errors -->
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#FEF2F2; color:#DC2626;"><i class="bi bi-shield-x"></i></span>
+          AI Model Error Breakdown
+        </h2>
+      </div>
+      <div class="rows">
+        {% for e in s.errors %}
+        <div class="d-flex justify-content-between align-items-center py-3">
+          <div>
+            <div class="fw-bold text-dark">{{ e.service }}</div>
+            <div class="small text-muted font-monospace"><i class="bi bi-bug me-1"></i>{{ e.error_code|default:"unknown_error" }}</div>
+          </div>
+          <span class="chip bad tnum fs-6 px-3 py-1">{{ e.n }} fail{{ e.n|pluralize }}</span>
+        </div>
+        {% empty %}
+        <div class="empty py-4">
+          <i class="bi bi-shield-check text-success" style="font-size:2.2rem;"></i>
+          <p class="text-success fw-semibold mb-0">Zero model errors in the past 7 days! All services running cleanly.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Needs Attention & Moderation -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>
+          <span class="panel-icon-pill" style="background:#FFF7ED; color:#EA580C;"><i class="bi bi-shield-exclamation"></i></span>
+          Moderation &amp; Safety Attention
+        </h2>
+      </div>
+      <div class="rows">
+        <a class="row-link py-3" href="{% url 'admin_moderation' %}">
+          <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon icon-flagged" style="width:38px; height:38px; font-size:1.05rem;">
+              <i class="bi bi-flag-fill"></i>
+            </div>
+            <div>
+              <div class="fw-bold text-dark">Flagged Learning Materials</div>
+              <div class="small text-muted">User or automated safety reports</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="chip {% if flagged %}bad fs-6 px-3 py-1{% else %}ok{% endif %}">
+              {% if flagged %}{{ flagged }} item{{ flagged|pluralize }} pending{% else %}All Clean{% endif %}
+            </span>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </div>
+        </a>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

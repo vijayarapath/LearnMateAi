@@ -1,0 +1,11 @@
+{% extends "myapp/base.html" %}
+{% block title %}Moderation{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Content moderation</h1><p>Flagged material is hidden from students.</p></div></div>
+<div class="row g-3"><div class="col-lg-6"><section class="panel"><div class="panel-head"><h2>Learning material</h2></div><div class="rows">{% for m in materials %}<div class="d-flex justify-content-between align-items-center"><span>{{ m.title }}<span class="d-block small text-muted">{{ m.course.title }}</span></span>
+  <form method="post" action="{% url 'admin_moderation_toggle' 'material' m.pk %}">{% csrf_token %}<button class="btn btn-sm {% if m.is_flagged %}btn-outline-danger{% else %}btn-quiet{% endif %}">{% if m.is_flagged %}Unflag{% else %}Flag{% endif %}</button></form></div>
+  {% empty %}<div class="empty"><p>No material uploaded.</p></div>{% endfor %}</div></section></div>
+  <div class="col-lg-6"><section class="panel"><div class="panel-head"><h2>Generated pictures</h2></div><div class="rows">{% for v in visuals %}<div class="d-flex justify-content-between align-items-center gap-3"><span class="text-truncate">{{ v.prompt }}<span class="d-block small text-muted">{{ v.owner.username }}</span></span>
+  <form method="post" action="{% url 'admin_moderation_toggle' 'visual' v.pk %}">{% csrf_token %}<button class="btn btn-sm {% if v.is_flagged %}btn-outline-danger{% else %}btn-quiet{% endif %}">{% if v.is_flagged %}Unflag{% else %}Flag{% endif %}</button></form></div>
+  {% empty %}<div class="empty"><p>No pictures generated.</p></div>{% endfor %}</div></section></div></div>
+{% endblock %}

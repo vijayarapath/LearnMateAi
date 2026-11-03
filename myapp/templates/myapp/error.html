@@ -1,0 +1,4 @@
+{% extends "myapp/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block bare %}<div class="auth-form" style="min-height:100vh"><div class="text-center"><div class="display-5 fw-bold text-muted">{{ code }}</div><h1>{{ title }}</h1><p class="text-muted">{{ message }}</p><a class="btn btn-primary" href="/">Back to LearnMate</a></div></div>{% endblock %}
+{% block content %}<div class="text-center py-5"><div class="display-5 fw-bold text-muted">{{ code }}</div><h1>{{ title }}</h1><p class="text-muted">{{ message }}</p><a class="btn btn-primary" href="{% url 'home' %}">Back to dashboard</a></div>{% endblock %}

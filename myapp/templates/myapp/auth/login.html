@@ -1,0 +1,11 @@
+{% extends "myapp/auth/shell.html" %}
+{% block title %}Log in{% endblock %}
+{% block auth_body %}
+<h1>Log in</h1><p class="text-muted">Use the username and password you registered with.</p>
+<form method="post" novalidate>{% csrf_token %}
+  {% include "myapp/partials/form_fields.html" with form=form %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button class="btn btn-primary w-100">Log in</button>
+</form>
+<div class="d-flex justify-content-between mt-3 small"><a href="{% url 'password_reset' %}">Forgot your password?</a><a href="{% url 'register' %}">Create an account</a></div>
+{% endblock %}

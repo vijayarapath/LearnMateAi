@@ -1,0 +1,8 @@
+{% extends "myapp/base.html" %}
+{% block title %}Courses{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Courses</h1><p>Classes you have joined.</p></div>
+  <form method="post" action="{% url 'join_course' %}" class="d-flex gap-2">{% csrf_token %}<input name="code" class="form-control" placeholder="Class code" maxlength="8" aria-label="Class code" required style="width:150px"><button class="btn btn-primary">Join class</button></form></div>
+<section class="panel"><div class="rows">{% for c in courses %}<a class="row-link" href="{% url 'course_view' c.pk %}"><span>{{ c.title }}<span class="d-block small text-muted">{{ c.subject.name }} · {{ c.teacher.profile.display_name }}</span></span><i class="bi bi-chevron-right text-muted"></i></a>
+{% empty %}{% include "myapp/partials/empty.html" with icon="bi-book" text="You have not joined a class. Ask your teacher for the class code and enter it above." %}{% endfor %}</div></section>
+{% endblock %}

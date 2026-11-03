@@ -1,0 +1,12 @@
+{% extends "myapp/base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Users</h1><p>Assign roles and deactivate accounts.</p></div><form method="get" class="d-flex gap-2"><input name="q" class="form-control" placeholder="Search users" value="{{ q }}" aria-label="Search users"><button class="btn btn-outline-primary">Search</button></form></div>
+<section class="panel"><table class="table mb-0 align-middle"><thead><tr><th>User</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+{% for u in page %}<tr><td>{{ u.profile.display_name }}<div class="small text-muted">{{ u.username }} · {{ u.email }}</div></td>
+  <td><form method="post" action="{% url 'admin_user_update' u.pk %}" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="action" value="role"><select name="role" class="form-select form-select-sm" style="width:140px" aria-label="Role for {{ u.username }}">{% for v, l in roles %}<option value="{{ v }}" {% if u.profile.role == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select><button class="btn btn-outline-primary btn-sm">Save</button></form></td>
+  <td><span class="chip {% if u.is_active %}ok{% else %}bad{% endif %}">{% if u.is_active %}Active{% else %}Deactivated{% endif %}</span></td>
+  <td class="text-end"><form method="post" action="{% url 'admin_user_update' u.pk %}">{% csrf_token %}<input type="hidden" name="action" value="{% if u.is_active %}deactivate{% else %}activate{% endif %}"><button class="btn btn-quiet btn-sm">{% if u.is_active %}Deactivate{% else %}Activate{% endif %}</button></form></td></tr>
+{% endfor %}</tbody></table></section>
+{% if page.has_other_pages %}<div class="d-flex gap-2 mt-3">{% if page.has_previous %}<a class="btn btn-outline-primary btn-sm" href="?page={{ page.previous_page_number }}&q={{ q }}">Previous</a>{% endif %}{% if page.has_next %}<a class="btn btn-outline-primary btn-sm" href="?page={{ page.next_page_number }}&q={{ q }}">Next</a>{% endif %}</div>{% endif %}
+{% endblock %}

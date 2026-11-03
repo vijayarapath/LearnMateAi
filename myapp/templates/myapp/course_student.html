@@ -1,0 +1,15 @@
+{% extends "myapp/base.html" %}
+{% block title %}{{ course.title }}{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="my_courses" parent_label="Courses" here=course.title %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ course.title }}</h1><p>{{ course.subject.name }} · {{ course.teacher.profile.display_name }}</p></div></div>
+<div class="row g-3"><div class="col-lg-6">
+  <section class="panel mb-3"><div class="panel-head"><h2>Topics</h2></div><div class="rows">{% for t in topics %}<form method="post" action="{% url 'topic_toggle' t.pk %}" class="d-flex justify-content-between align-items-center">{% csrf_token %}<span>{{ t.title }}</span>
+    <button class="btn btn-sm {% if t.pk in done %}btn-outline-primary{% else %}btn-quiet{% endif %}">{% if t.pk in done %}<i class="bi bi-check-circle-fill text-success"></i> Done{% else %}Mark done{% endif %}</button></form>
+  {% empty %}<div class="empty"><p>Your teacher has not added topics yet.</p></div>{% endfor %}</div></section>
+  <section class="panel"><div class="panel-head"><h2>Assignments</h2></div><div class="rows">{% for a in assignments %}<div>{{ a.title }}<div class="small text-muted">Due {{ a.due_date|date:"j M Y" }}{% if a.quiz %} · <a href="{% url 'quiz_detail' a.quiz.pk %}">Open quiz</a>{% endif %}</div>{% if a.instructions %}<div class="small mt-1">{{ a.instructions }}</div>{% endif %}</div>
+  {% empty %}<div class="empty"><p>No assignments.</p></div>{% endfor %}</div></section></div>
+  <div class="col-lg-6"><section class="panel mb-3"><div class="panel-head"><h2>Learning material</h2></div><div class="rows">{% for m in materials %}<div class="d-flex justify-content-between"><span>{{ m.title }}</span>{% if m.file %}<a href="{% url 'private_media' 'material' m.pk %}">Download</a>{% endif %}</div>
+  {% empty %}<div class="empty"><p>No material yet.</p></div>{% endfor %}</div></section>
+  <section class="panel"><div class="panel-head"><h2>Quizzes</h2></div><div class="rows">{% for q in quizzes %}<a class="row-link" href="{% url 'quiz_detail' q.pk %}">{{ q.title }}<i class="bi bi-chevron-right text-muted"></i></a>{% empty %}<div class="empty"><p>No published quizzes.</p></div>{% endfor %}</div></section></div></div>
+{% endblock %}

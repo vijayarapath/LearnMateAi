@@ -1,0 +1,10 @@
+{% extends "myapp/base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Search</h1><p>{% if q %}{{ total }} result{{ total|pluralize }} for “{{ q }}”.{% else %}Type at least two letters in the search box.{% endif %}</p></div></div>
+{% for label, items in results.items %}{% if items %}<section class="panel mb-3"><div class="panel-head"><h2>{{ label }}</h2></div><div class="rows">
+{% for i in items %}{% if label == "Notes" %}<a class="row-link" href="{% url 'notes' %}">{{ i.title }}</a>{% elif label == "Conversations" %}<a class="row-link" href="{% url 'tutor_conversation' i.pk %}">{{ i.title }}</a>
+{% elif label == "Quizzes" %}<a class="row-link" href="{% url 'quiz_detail' i.pk %}">{{ i.title }}</a>{% elif label == "Study plans" %}<a class="row-link" href="{% url 'plan_detail' i.pk %}">{{ i.goal }}</a>
+{% else %}<span class="d-block">{{ i.title }}</span>{% endif %}{% endfor %}</div></section>{% endif %}{% endfor %}
+{% if q and not total %}<div class="panel">{% include "myapp/partials/empty.html" with icon="bi-search" text="Nothing matched. Try a shorter word or a topic name." %}</div>{% endif %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "myapp/base.html" %}
+{% block title %}Result{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="quiz_list" parent_label="Quizzes" here="Result" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ attempt.quiz.title }}</h1><p>Submitted {{ attempt.submitted_at|date:"j M Y, H:i" }}</p></div>
+  <div class="quick">{% if has_wrong %}<form method="post" action="{% url 'quiz_retry' attempt.id %}">{% csrf_token %}<button class="btn btn-primary">Retry incorrect questions</button></form>{% endif %}<a class="btn btn-outline-primary" href="{% url 'quiz_list' %}">All quizzes</a></div></div>
+<div class="figures mb-3" style="max-width:560px"><div class="figure"><div class="v">{{ attempt.score }}/{{ attempt.total }}</div><div class="l">Correct answers</div></div><div class="figure"><div class="v">{{ attempt.percent|floatformat:0 }}%</div><div class="l">Score</div></div></div>
+<div class="row g-3"><div class="col-lg-7"><section class="panel"><div class="panel-head"><h2>Your answers</h2></div>
+  {% for r in rows %}<div class="answer-row"><div class="d-flex gap-2"><i class="bi {% if r.is_correct %}bi-check-circle-fill result-ok{% else %}bi-x-circle-fill result-bad{% endif %} mt-1"></i><div>
+    <div class="fw-semibold">{{ r.question.text }}</div>
+    <div class="small">Your answer: <span class="{% if r.is_correct %}result-ok{% else %}result-bad{% endif %}">{{ r.given|default:"(blank)" }}</span></div>
+    {% if not r.is_correct %}<div class="small">Correct answer: <strong>{{ r.question.correct_answer }}</strong></div>{% endif %}
+    {% if r.question.explanation %}<div class="small text-muted mt-1">{{ r.question.explanation }}</div>{% endif %}</div></div></div>{% endfor %}</section></div>
+  <div class="col-lg-5"><section class="panel"><div class="panel-head"><h2>Score by topic</h2></div><div class="panel-body" style="height:{% widthratio breakdown|length 1 48 %}px;min-height:200px"><canvas id="topicChart" role="img" aria-label="Score by topic"></canvas></div>
+    <div class="rows">{% for b in breakdown %}<div class="d-flex justify-content-between"><span>{{ b.topic }}</span><span class="tnum">{{ b.correct }}/{{ b.total }}</span></div>{% endfor %}</div></section></div></div>
+{% endblock %}
+{% block scripts %}{{ chart|json_script:"chartdata" }}<script>const C = JSON.parse(document.getElementById("chartdata").textContent); LM.chart("topicChart", "bar", C.labels, C.values, "Score %", {max: 100, color: "#0D9488"});</script>{% endblock %}

@@ -1,0 +1,15 @@
+[Unit]
+Description=LearnMate AI (Gunicorn)
+After=network.target
+
+[Service]
+User=learnmate
+Group=www-data
+WorkingDirectory=/srv/learnmate/Education
+EnvironmentFile=/srv/learnmate/Education/.env
+RuntimeDirectory=learnmate
+ExecStart=/srv/learnmate/venv/bin/gunicorn myproject.wsgi:application -c deploy/gunicorn.conf.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

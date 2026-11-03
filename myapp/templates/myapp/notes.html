@@ -1,0 +1,9 @@
+{% extends "myapp/base.html" %}
+{% block title %}Saved notes{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Saved notes</h1><p>Answers you kept from the AI tutor. Notes are AI-generated, so re-check key facts.</p></div></div>
+{% for n in notes %}<section class="panel mb-3"><div class="panel-head"><h2>{{ n.title }}</h2>
+  <form method="post" action="{% url 'note_delete' n.pk %}" data-confirm="Delete this note?">{% csrf_token %}<button class="btn btn-quiet btn-sm" aria-label="Delete note"><i class="bi bi-trash"></i></button></form></div>
+  <div class="panel-body" style="white-space:pre-wrap">{{ n.body }}</div></section>
+{% empty %}<div class="panel">{% include "myapp/partials/empty.html" with icon="bi-bookmark" text="No notes yet. Use “Save as note” under any AI answer." href="/tutor/" cta="Open the AI tutor" %}</div>{% endfor %}
+{% endblock %}

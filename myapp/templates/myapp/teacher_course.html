@@ -1,0 +1,22 @@
+{% extends "myapp/base.html" %}
+{% block title %}{{ course.title }}{% endblock %}
+{% block crumbs %}{% include "myapp/partials/crumbs.html" with parent_url="teacher_courses" parent_label="Classes" here=course.title %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ course.title }}</h1><p>{{ course.subject.name }} · join code <strong class="tnum">{{ course.join_code }}</strong></p></div>
+  <div class="quick"><a class="btn btn-outline-primary" href="{% url 'quiz_create' %}">Create quiz</a><a class="btn btn-outline-primary" href="{% url 'teacher_reports' %}?course={{ course.pk }}">View report</a></div></div>
+<div class="row g-3"><div class="col-lg-7">
+  <section class="panel mb-3"><div class="panel-head"><h2>Students ({{ enrollments|length }})</h2></div>
+    <div class="rows">{% for e in enrollments %}<div class="d-flex justify-content-between align-items-center"><a href="{% url 'student_report' course.pk e.student_id %}">{{ e.student.profile.display_name }}<span class="small text-muted ms-2">{{ e.student.email }}</span></a>
+      <form method="post" action="{% url 'unenroll_student' course.pk e.student_id %}" data-confirm="Remove this student from the class?">{% csrf_token %}<button class="btn btn-quiet btn-sm" aria-label="Remove student"><i class="bi bi-x-lg"></i></button></form></div>
+    {% empty %}<div class="empty"><p>No students yet. Add them below or share the join code.</p></div>{% endfor %}</div>
+    <form method="post" action="{% url 'enroll_student' course.pk %}" class="panel-body border-top d-flex gap-2">{% csrf_token %}<input name="identifier" class="form-control" placeholder="Student username or email" aria-label="Student username or email" required><button class="btn btn-outline-primary">Enroll</button></form></section>
+  <section class="panel mb-3"><div class="panel-head"><h2>Assignments</h2></div><div class="rows">{% for a in assignments %}<div>{{ a.title }}<div class="small text-muted">Due {{ a.due_date|date:"j M Y" }}</div></div>{% empty %}<div class="empty"><p>No assignments yet.</p></div>{% endfor %}</div>
+    <form method="post" action="{% url 'assignment_add' course.pk %}" class="panel-body border-top">{% csrf_token %}{% include "myapp/partials/form_fields.html" with form=assignment_form %}<button class="btn btn-outline-primary">Create assignment</button></form></section>
+  <section class="panel"><div class="panel-head"><h2>Quizzes</h2></div><div class="rows">{% for q in quizzes %}<a class="row-link" href="{% url 'quiz_detail' q.pk %}"><span>{{ q.title }}</span><span class="chip {% if q.published %}ok{% endif %}">{% if q.published %}Published{% else %}Draft{% endif %}</span></a>{% empty %}<div class="empty"><p>No quizzes for this class.</p></div>{% endfor %}</div></section></div>
+  <div class="col-lg-5">
+  <section class="panel mb-3"><div class="panel-head"><h2>Topics</h2></div><div class="rows">{% for t in topics %}<div>{{ t.title }}</div>{% empty %}<div class="empty"><p>Add topics students can tick off.</p></div>{% endfor %}</div>
+    <form method="post" action="{% url 'topic_add' course.pk %}" class="panel-body border-top d-flex gap-2">{% csrf_token %}<input name="title" class="form-control" placeholder="Topic title" aria-label="Topic title" required maxlength="140"><button class="btn btn-outline-primary">Add</button></form></section>
+  <section class="panel"><div class="panel-head"><h2>Learning material</h2></div><div class="rows">{% for m in materials %}<div class="d-flex justify-content-between"><span>{{ m.title }}{% if m.is_flagged %} <span class="chip bad">Flagged</span>{% endif %}</span>
+    <form method="post" action="{% url 'material_delete' m.pk %}" data-confirm="Delete this material?">{% csrf_token %}<button class="btn btn-quiet btn-sm" aria-label="Delete material"><i class="bi bi-trash"></i></button></form></div>{% empty %}<div class="empty"><p>No material uploaded.</p></div>{% endfor %}</div>
+    <form method="post" enctype="multipart/form-data" action="{% url 'material_add' course.pk %}" class="panel-body border-top">{% csrf_token %}{% include "myapp/partials/form_fields.html" with form=material_form %}<button class="btn btn-outline-primary">Add material</button></form></section></div></div>
+{% endblock %}

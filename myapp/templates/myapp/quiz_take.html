@@ -1,0 +1,45 @@
+{% extends "myapp/base.html" %}
+{% block title %}{{ quiz.title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ quiz.title }}</h1><p id="progressText"></p></div>{% if remaining is not None %}<div class="chip brand fs-6 tnum" id="timer" role="timer">--:--</div>{% endif %}</div>
+<div class="progress mb-3" role="progressbar" aria-label="Quiz progress"><div class="progress-bar" id="bar" style="width:0"></div></div>
+<section class="panel" style="max-width:760px"><div class="panel-body"><h2 id="qtext" class="mb-3"></h2><div id="answers" class="d-grid gap-2"></div></div>
+  <div class="composer d-flex justify-content-between"><button class="btn btn-outline-primary" id="prev">Previous</button><div><button class="btn btn-primary" id="next">Next</button><button class="btn btn-primary d-none" id="submit">Submit quiz</button></div></div></section>
+<div class="modal fade" id="confirm" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h2 class="modal-title h5">Submit your answers?</h2></div>
+  <div class="modal-body" id="confirmBody"></div><div class="modal-footer"><button class="btn btn-outline-primary" data-bs-dismiss="modal">Keep working</button><button class="btn btn-primary" id="yes">Submit</button></div></div></div></div>
+{% endblock %}
+{% block scripts %}
+{{ questions_json|json_script:"qdata" }}
+<script>
+(() => {
+  const Q = JSON.parse(document.getElementById("qdata").textContent), ans = {}; let i = 0, done = false;
+  const $ = (id) => document.getElementById(id);
+  function render() {
+    const q = Q[i]; $("qtext").textContent = q.text; $("progressText").textContent = `Question ${i + 1} of ${Q.length}`; $("bar").style.width = ((i + 1) / Q.length * 100) + "%";
+    const box = $("answers"); box.replaceChildren();
+    if (q.type === "short") {
+      const inp = document.createElement("input"); inp.className = "form-control"; inp.setAttribute("aria-label", "Your answer"); inp.value = ans[q.id] || ""; inp.oninput = () => ans[q.id] = inp.value; box.appendChild(inp); inp.focus();
+    } else q.options.forEach((o) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "q-option" + (ans[q.id] === o ? " selected" : ""); b.textContent = o;
+      b.onclick = () => { ans[q.id] = o; render(); }; box.appendChild(b);
+    });
+    $("prev").disabled = i === 0; $("next").classList.toggle("d-none", i === Q.length - 1); $("submit").classList.toggle("d-none", i !== Q.length - 1);
+  }
+  $("prev").onclick = () => { i--; render(); }; $("next").onclick = () => { i++; render(); };
+  const modal = new bootstrap.Modal($("confirm"));
+  $("submit").onclick = () => { const un = Q.filter(q => !(ans[q.id] || "").trim()).length; $("confirmBody").textContent = un ? `${un} question${un > 1 ? "s are" : " is"} unanswered. Submit anyway?` : "You answered every question."; modal.show(); };
+  async function finish() {
+    if (done) return; done = true; $("yes").disabled = true;
+    const r = await LM.post("/quizzes/attempt/{{ attempt.id }}/submit/", { answers: ans });
+    if (r.ok) location.href = r.url; else { done = false; $("yes").disabled = false; LM.toast(r.error || "Could not submit. Try again.", "danger"); }
+  }
+  $("yes").onclick = finish;
+  {% if remaining is not None %}
+  let left = {{ remaining }}; const t = $("timer");
+  const tick = () => { t.textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`; if (left <= 0) { LM.toast("Time is up. Submitting your answers.", "warning"); finish(); return; } left--; setTimeout(tick, 1000); };
+  tick();
+  {% endif %}
+  render();
+})();
+</script>
+{% endblock %}

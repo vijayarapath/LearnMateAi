@@ -1,0 +1,8 @@
+{% extends "myapp/base.html" %}
+{% block title %}Study planner{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Study planner</h1><p>Turn a goal and a date into a daily schedule.</p></div><a class="btn btn-primary" href="{% url 'plan_create' %}"><i class="bi bi-plus-lg me-1"></i>New plan</a></div>
+<section class="panel"><div class="rows">{% for p in plans %}<a class="row-link" href="{% url 'plan_detail' p.pk %}"><span>{{ p.goal }}<span class="d-block small text-muted">{{ p.subject }} · by {{ p.target_date|date:"j M Y" }} · {{ p.daily_minutes }} min a day</span></span>
+  <span style="min-width:140px"><span class="small tnum">{{ p.completion_percent }}% done</span><div class="progress mt-1"><div class="progress-bar" style="width:{{ p.completion_percent }}%"></div></div></span></a>
+{% empty %}{% include "myapp/partials/empty.html" with icon="bi-calendar-check" text="No study plans yet. Pick a goal, the topics and a finish date." href="/planner/new/" cta="Create a plan" %}{% endfor %}</div></section>
+{% endblock %}

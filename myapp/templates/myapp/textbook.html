@@ -1,0 +1,142 @@
+{% extends "myapp/base.html" %}
+{% block title %}Textbook upload{% endblock %}
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Textbook upload</h1><p>Upload a page, diagram, or PDF document, choose the part you need, and get an explanation.</p></div></div>
+{% if not profile.can_use_ai %}<div class="alert alert-warning">AI features are off for your account. <a href="{% url 'profile' %}">Open privacy settings</a>.</div>{% endif %}
+<div class="row g-3">
+  <div class="col-lg-7"><section class="panel"><div class="panel-body">
+    <label class="form-label" for="file">Textbook page or PDF document (JPG, PNG, WebP, GIF or PDF, up to 15 MB)</label>
+    <input class="form-control mb-3" type="file" id="file" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf">
+    <div id="pdfNotice" class="alert alert-info d-none mb-3 d-flex align-items-center gap-2">
+      <i class="bi bi-file-earmark-pdf fs-4 text-danger"></i>
+      <div><strong>PDF Document:</strong> <span id="pdfName"></span><div class="small text-muted">Page 1 preview is shown below. You can crop a section or use the entire page.</div></div>
+    </div>
+    <div id="stageWrap" class="d-none mb-3"><div class="small text-muted mb-1">Drag on the picture to select just the part you need. Leave it alone to use the whole page.</div>
+      <div class="crop-stage" id="stage"><img id="preview" alt="Preview of your upload"><div class="crop-box d-none" id="box"></div></div>
+      <div><button class="btn btn-quiet btn-sm" id="clearCrop" type="button">Clear selection</button></div></div>
+    <div class="row g-2 mb-3"><div class="col-md-6"><label class="form-label" for="title">Title</label><input id="title" class="form-control" maxlength="140" placeholder="Chapter 3, page 41"></div>
+      <div class="col-md-3"><label class="form-label" for="subject">Subject</label><input id="subject" class="form-control" maxlength="80"></div>
+      <div class="col-md-3"><label class="form-label" for="lang">Explain in</label><select id="lang" class="form-select"><option value="en">English</option><option value="ta">Tamil</option></select></div></div>
+    <label class="form-label" for="ask">Your question (optional)</label><input id="ask" class="form-control mb-3" maxlength="500" placeholder="What does this section or formula mean?">
+    <button class="btn btn-primary" id="go" disabled>Explain this</button>
+    <div id="err" class="alert alert-danger mt-3 d-none"></div>
+  </div></section></div>
+  <div class="col-lg-5"><section class="panel"><div class="panel-head"><h2>Recent uploads</h2></div><div class="rows">
+    {% for i in items %}<a class="row-link" href="{% url 'textbook_detail' i.pk %}"><span>{{ i.title|default:"Untitled" }}<span class="d-block small text-muted">{{ i.created_at|date:"j M, H:i" }}</span></span><span class="chip {% if i.status == 'done' %}ok{% elif i.status == 'failed' %}bad{% endif %}">{{ i.get_status_display }}</span></a>
+    {% empty %}<div class="empty"><p>Your explained pages and documents are saved here.</p></div>{% endfor %}</div></section></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const $ = (i) => document.getElementById(i), file = $("file"), img = $("preview"), stage = $("stage"), box = $("box");
+  let crop = null, start = null, isPdf = false;
+  
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  file.onchange = async () => {
+    const f = file.files[0];
+    $("err").classList.add("d-none");
+    $("pdfNotice").classList.add("d-none");
+    if (!f) return;
+    
+    isPdf = f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf");
+    const isImg = f.type.startsWith("image/");
+    if (!isPdf && !isImg) {
+      $("err").textContent = "Choose a valid image (JPG, PNG, WebP, GIF) or PDF file.";
+      $("err").classList.remove("d-none");
+      $("go").disabled = true;
+      return;
+    }
+    if (f.size > 15 * 1024 * 1024) {
+      $("err").textContent = "This file is larger than 15 MB. Choose a smaller file.";
+      $("err").classList.remove("d-none");
+      $("go").disabled = true;
+      return;
+    }
+
+    $("title").value ||= f.name.replace(/\.[^.]+$/, "");
+    crop = null;
+    box.classList.add("d-none");
+
+    if (isPdf) {
+      $("pdfName").textContent = f.name;
+      $("pdfNotice").classList.remove("d-none");
+      $("go").disabled = false;
+      $("go").textContent = "Explain this PDF";
+
+      // Render Page 1 using PDF.js if available
+      try {
+        if (window.pdfjsLib) {
+          const buffer = await f.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+          img.src = canvas.toDataURL("image/jpeg", 0.85);
+          $("stageWrap").classList.remove("d-none");
+        } else {
+          $("stageWrap").classList.add("d-none");
+        }
+      } catch (e) {
+        console.warn("PDF client preview error:", e);
+        $("stageWrap").classList.add("d-none");
+      }
+    } else {
+      img.src = URL.createObjectURL(f);
+      $("stageWrap").classList.remove("d-none");
+      $("go").disabled = false;
+      $("go").textContent = "Explain this image";
+    }
+  };
+
+  const pos = (e) => {
+    const r = img.getBoundingClientRect();
+    return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))];
+  };
+  stage.addEventListener("pointerdown", (e) => { start = pos(e); stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    const p = pos(e);
+    const x = Math.min(start[0], p[0]), y = Math.min(start[1], p[1]), w = Math.abs(p[0] - start[0]), h = Math.abs(p[1] - start[1]);
+    crop = [x, y, w, h];
+    Object.assign(box.style, { left: x * 100 + "%", top: y * 100 + "%", width: w * 100 + "%", height: h * 100 + "%" });
+    box.classList.remove("d-none");
+  });
+  stage.addEventListener("pointerup", () => {
+    start = null;
+    if (crop && (crop[2] < .03 || crop[3] < .03)) { crop = null; box.classList.add("d-none"); }
+  });
+  $("clearCrop").onclick = () => { crop = null; box.classList.add("d-none"); };
+
+  $("go").onclick = async () => {
+    const fd = new FormData();
+    fd.append("image", file.files[0]);
+    fd.append("title", $("title").value);
+    fd.append("subject", $("subject").value);
+    fd.append("language", $("lang").value);
+    fd.append("question", $("ask").value);
+    if (crop) fd.append("crop", JSON.stringify(crop));
+
+    $("go").disabled = true;
+    $("go").textContent = isPdf ? "Analyzing PDF document…" : "Reading the image…";
+    $("err").classList.add("d-none");
+
+    const r = await LM.post("/api/textbook/analyze/", fd);
+    if (r.ok) { location.href = r.url; return; }
+    $("err").textContent = r.error || "Could not process this file.";
+    $("err").classList.remove("d-none");
+    $("go").disabled = false;
+    $("go").textContent = r.retryable ? "Try again" : (isPdf ? "Explain this PDF" : "Explain this image");
+  };
+})();
+</script>
+{% endblock %}

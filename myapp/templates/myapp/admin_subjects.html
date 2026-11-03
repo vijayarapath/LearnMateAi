@@ -1,0 +1,9 @@
+{% extends "myapp/base.html" %}
+{% block title %}Subjects{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Subjects</h1><p>Teachers pick from active subjects when creating a class.</p></div></div>
+<div class="row g-3"><div class="col-lg-7"><section class="panel"><div class="rows">{% for s in subjects %}<div class="d-flex justify-content-between align-items-center"><span>{{ s.name }}<span class="d-block small text-muted">{{ s.description }}</span></span>
+  <form method="post" action="{% url 'admin_subject_toggle' s.pk %}">{% csrf_token %}<button class="btn btn-sm {% if s.is_active %}btn-outline-primary{% else %}btn-quiet{% endif %}">{% if s.is_active %}Active{% else %}Hidden{% endif %}</button></form></div>
+  {% empty %}<div class="empty"><p>No subjects yet.</p></div>{% endfor %}</div></section></div>
+  <div class="col-lg-5"><form method="post" class="panel"><div class="panel-head"><h2>Add a subject</h2></div><div class="panel-body">{% csrf_token %}{% include "myapp/partials/form_fields.html" with form=form %}<button class="btn btn-primary">Add subject</button></div></form></div></div>
+{% endblock %}

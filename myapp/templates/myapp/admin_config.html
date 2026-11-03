@@ -1,0 +1,11 @@
+{% extends "myapp/base.html" %}
+{% block title %}Configuration{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Configuration</h1><p>Read-only status. Change values in the .env file and restart the server. Secrets are never shown here.</p></div></div>
+<div class="row g-3"><div class="col-lg-6"><section class="panel mb-3"><div class="panel-head"><h2>Model services</h2><span class="small text-muted">Text provider: {{ text_provider }}</span></div><div class="rows">{% for name, ok in services %}<div class="d-flex justify-content-between"><span>{{ name }}</span><span class="chip {% if ok %}ok{% else %}warn{% endif %}">{% if ok %}Configured{% else %}Not configured{% endif %}</span></div>{% endfor %}</div></section>
+  <section class="panel"><div class="panel-head"><h2>Storage</h2></div><div class="rows"><div class="d-flex justify-content-between"><span>Uploaded files</span><span class="tnum">{{ storage_mb }} MB</span></div></div></section></div>
+  <div class="col-lg-6"><section class="panel mb-3"><div class="panel-head"><h2>Hourly rate limits per user</h2></div><div class="rows">{% for k, v in limits.items %}<div class="d-flex justify-content-between"><span>{{ k }}</span><span class="tnum">{{ v.0 }}</span></div>{% endfor %}</div></section>
+  <section class="panel"><div class="panel-head"><h2>Limits and retention</h2></div><div class="rows"><div class="d-flex justify-content-between"><span>Image upload</span><span>{{ uploads.image }} MB</span></div><div class="d-flex justify-content-between"><span>Audio upload</span><span>{{ uploads.audio }} MB</span></div><div class="d-flex justify-content-between"><span>Material upload</span><span>{{ uploads.material }} MB</span></div>
+  <div class="d-flex justify-content-between"><span>AI request logs kept</span><span>{{ retention.ai_request_logs }} days</span></div><div class="d-flex justify-content-between"><span>Read notifications kept</span><span>{{ retention.read_notifications }} days</span></div></div></section>
+  {% if debug %}<div class="alert alert-warning mt-3">DEBUG is on. Turn it off in production.</div>{% endif %}</div></div>
+{% endblock %}
